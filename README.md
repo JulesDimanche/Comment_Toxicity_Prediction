@@ -8,6 +8,7 @@ This project focuses on predicting the toxicity level of user comments using Nat
 - TensorFlow/Keras 🔥
 - Pandas 🏛️
 - Scikit-Learn 📊
+- Flask 🌍
 - LSTM & Bidirectional LSTM
 
 ## 🚀 Features
@@ -15,6 +16,7 @@ This project focuses on predicting the toxicity level of user comments using Nat
 - Deep Learning model with **LSTM** and **Bidirectional LSTM** layers
 - Multi-label classification for six toxicity categories
 - Model trained and evaluated using TensorFlow
+- **Flask API** for real-time predictions
 
 ## 📂 Dataset
 The model is trained on the **Jigsaw Toxic Comment Classification Challenge** dataset, which includes the following toxicity labels:
@@ -75,37 +77,76 @@ history = model.fit(train, epochs=8, validation_data=val)
 model.save('Toxicity.h5')
 ```
 
-## 🔍 Prediction Example
+## Flask API Deployment 🌍
+The model is now deployed using Flask, allowing real-time text predictions via an API.
 ```python
-# Load model
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+from tensorflow.keras.layers import TextVectorization
+from flask import Flask, request, jsonify
+
+# Load trained model
 model = tf.keras.models.load_model('Toxicity.h5')
 
-# Sample prediction
-input_text = vectorize(['U are ugly'])
-res = model.predict(tf.expand_dims(input_text, 0))
+# Load dataset to get label names
+df = pd.read_csv('train.csv')  
+toxicity_labels = df.columns[2:]  # Assuming first two columns are not labels
 
-# Display results
-for idx, column in enumerate(df.columns[2:]):
-    print(f"{column}: {res[0][idx] > 0.5}")
+# Define Text Vectorization (same as used in training)
+MAX_FEATURES = 200000
+vectorize = TextVectorization(max_tokens=MAX_FEATURES, output_sequence_length=2000, output_mode='int')
+vectorize.adapt(df['comment_text'].values)  # Adapt vectorizer to training data
+
+# Initialize Flask app
+app = Flask(__name__)
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.json
+    input_text = data.get('text', '')
+
+    if not input_text:
+        return jsonify({'error': 'No text provided'}), 400
+
+    # Vectorize input
+    input_vector = vectorize([input_text])
+    res = model.predict(input_vector)[0]
+
+    # Format output (convert predictions to True/False)
+    results = {label: bool(pred > 0.5) for label, pred in zip(toxicity_labels, res)}
+
+    return jsonify({'input_text': input_text, 'toxicity_labels': results})
+
+if __name__ == '__main__':
+    app.run(debug=True)
 ```
 
-## 📊 Results
-After training, the model can classify comments into multiple toxicity categories with reasonable accuracy.
-
+## 🚀 Running the Flask API
+Run the following command to start the server:
+```bash
+python app.py
+```
+You can send a request to the API using Postman 
 ### Example Output:
-```
-Toxic: True
-Severe Toxic: False
-Obscene: False
-Threat: False
-Insult: True
-Identity Hate: False
+```json
+{
+  "input_text": "You are so dumb!",
+  "toxicity_labels": {
+    "toxic": true,
+    "severe_toxic": false,
+    "obscene": false,
+    "threat": false,
+    "insult": true,
+    "identity_hate": false
+  }
+}
 ```
 
 ## 🎯 Future Improvements
 - Improve accuracy by experimenting with **transformers (BERT, DistilBERT)**
 - Fine-tune hyperparameters for better performance
-- Deploy the model using **Flask, FastAPI, or Streamlit**
+- Deploy the model using **FastAPI, Docker or Cloud platforms**
 
 ## 📌 Contributing
 Feel free to fork this repository, suggest improvements, and contribute! 🚀
