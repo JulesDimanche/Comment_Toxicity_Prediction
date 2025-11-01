@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 from tensorflow.keras.layers import TextVectorization
 from flask import Flask, request, jsonify
+from flask_cors import CORS
+from flask import send_from_directory
+
 
 model = tf.keras.models.load_model('Toxicity.h5')
 
@@ -14,7 +17,11 @@ vectorize = TextVectorization(max_tokens=MAX_FEATURES, output_sequence_length=20
 vectorize.adapt(df['comment_text'].values)
 
 app = Flask(__name__)
+CORS(app)
 
+@app.route('/')
+def home():
+    return send_from_directory('.', 'index.html')
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.json
@@ -31,4 +38,4 @@ def predict():
     return jsonify({'input_text': input_text, 'toxicity_labels': results})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)

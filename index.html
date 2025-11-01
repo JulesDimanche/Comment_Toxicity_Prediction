@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Toxicity Classifier</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f8fa;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      color: #333;
+    }
+    textarea {
+      width: 100%;
+      max-width: 600px;
+      height: 120px;
+      padding: 10px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      resize: vertical;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #result {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 600px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .label-true {
+      color: #d9534f;
+      font-weight: bold;
+    }
+    .label-false {
+      color: #5cb85c;
+    }
+  </style>
+</head>
+<body>
+  <h1>Toxicity Detection</h1>
+  <textarea id="userText" placeholder="Type your comment here..."></textarea><br>
+  <button onclick="predictToxicity()">Check Toxicity</button>
+
+  <div id="result"></div>
+
+  <script>
+    async function predictToxicity() {
+      const text = document.getElementById('userText').value.trim();
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = "<em>Processing...</em>";
+
+      if (!text) {
+        resultDiv.innerHTML = "<span style='color:red;'>Please enter some text.</span>";
+        return;
+      }
+
+      try {
+        const response = await fetch('http://127.0.0.1:5000/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+
+        const data = await response.json();
+        if (data.error) {
+          resultDiv.innerHTML = `<span style='color:red;'>${data.error}</span>`;
+          return;
+        }
+
+        let html = `<h3>Results for:</h3><p>"${data.input_text}"</p><ul>`;
+        for (const [label, isToxic] of Object.entries(data.toxicity_labels)) {
+          html += `<li><span class="${isToxic ? 'label-true' : 'label-false'}">${label}: ${isToxic}</span></li>`;
+        }
+        html += "</ul>";
+        resultDiv.innerHTML = html;
+      } catch (err) {
+        resultDiv.innerHTML = `<span style='color:red;'>Error: ${err.message}</span>`;
+      }
+    }
+  </script>
+</body>
+</html>
