@@ -3,6 +3,3 @@ flask-cors
 tensorflow
 pandas
 numpy
-pandas
-matplotlib
-sklearn
